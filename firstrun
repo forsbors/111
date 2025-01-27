@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+#Checks if config exists, ask for rig if no config found
+
+[[ -t 1 ]] && . colors
+[[ -f /etc/brand.conf ]] && source /etc/brand.conf
+[[ -z $BRAND ]] && BRAND="Hive"
+
+if [[ -f /hive-config/branding-logo.txt ]]; then
+	BRANDING_LOGO=$(cat /hive-config/branding-logo.txt; echo .) #echo . to preserve new lines
+	BRANDING_LOGO=${BRANDING_LOGO%.} #remove last .
+elif [[ -z $BRANDING_LOGO ]]; then
+	BRANDING_LOGO="${BYELLOW}
+_______ _______ ___ ___ _______
+|   |   |_     _|   |   |    ___|
+|       |_|   |_|   |   |    ___|
+|___|___|_______|\_____/|_______|
+${NOCOLOR}
+"
+fi
+
+trap 'echo "Exiting"; exit 0' SIGINT
+
+#${CYAN}Welcome to Miners Hive.${NOCOLOR}
+
+
+HELLO_OK="/tmp/.hive-hello-ok"
+mkdir -p "/hive-config"
+
+
+[[ "$1" == "-f" ]] && echo "Forcing reconfig"
+
+HIVE_HOST_URL="$2"
+
+if [[ -z "$HIVE_HOST_URL" ]]; then
+	#Get preconfigured api host
+	[[ -f /hive-config/rig-config-example.txt ]] &&
+		eval `cat /hive-config/rig-config-example.txt | dos2unix | grep '^HIVE_HOST_URL='`
+	[[ -z "$HIVE_HOST_URL" ]] && HIVE_HOST_URL='http://api.hiveos.farm'
+fi
+
+[[ -f $RIG_CONF ]] && disk-expand -s # expand only if rig.conf exists
+
+if [[ ! -z "$3" ]]; then
+
+	[[ ! "$2" =~ ^(http|https)://[0-9a-z\.-]+(:[0-9]{2,5})?$ ]] &&
+		echo "${RED}Error: Invalid URL specified${NOCOLOR}" && exit 2
+
+	[[ "${#3}" != 40 ]] &&
+		echo "${RED}Error: Invalid FARM HASH specified${NOCOLOR}" && exit 3
+
+	[[ -f $RIG_CONF ]] && source $RIG_CONF
+	[[ ! -z "$WORKER_NAME" ]] && WORKER="WORKER_NAME=\"$WORKER_NAME\"" || WORKER=
+
+	# backup rig.conf
+	echo "${CYAN}> Saving current config to \"${RIG_CONF}.bak\"${NOCOLOR}"
+	mv -f $RIG_CONF ${RIG_CONF}.bak
+
+	echo "${CYAN}> Writing new config to \"$RIG_CONF\"${NOCOLOR}"
+	echo -e "HIVE_HOST_URL=\"$2\"\nFARM_HASH=\"$3\"\n$WORKER\n" > $RIG_CONF
+
+	# remove backup host
+	[[ -f "$API_HOST_FILE" ]] && rm $API_HOST_FILE
+
+	# try to connect
+	hello && echo "${BGREEN}Login OK. Happy mining!${NOCOLOR}" && exit 0
+
+	echo "${YELLOW}> Restoring previuos config${NOCOLOR}"
+	mv -f ${RIG_CONF}.bak ${RIG_CONF}
+	exit 1
+
+elif [[ ! -f $RIG_CONF || "$1" == "-f" ]]; then
+	[[ ! -t 1 ]] && selfupgrade # upgrade only in batch run
+	msg=$(cat <<EOF
+${BRANDING_LOGO}
+${CYAN}This is your first boot, no config found at ${BCYAN}$RIG_CONF${CYAN}.
+Please add your rig in your profile on the web, set the name and password for it.
+Then get rig id and put it here.
+
+${NOCOLOR}
+EOF
+)
+	echo -e "$msg"
+elif [[ ! -f $HELLO_OK ]]; then
+	msg=$(cat <<EOF
+${BRANDING_LOGO}
+${YELLOW}Config "$RIG_CONF" exists but during boot the connection to $BRAND server failed.
+Either the server or your network is temporary down.
+If you have changed the password for this rig, then you need to enter credentials again.$NOCOLOR
+Run ${CYAN}hello${NOCOLOR} to try again. Or run ${CYAN}firstrun -f${NOCOLOR} to enter new ID and password.
+$NOCOLOR
+EOF
+)
+	echo -e "$msg"
+
+	sleep 5
+
+	echo "Trying to say hello again...";
+	hello verbose
+
+	exit 0
+
+else
+	exit 0
+fi
+
+
+
+url=
+id=
+passwd=
+
+
+read_url() {
+	echo -e "Server API URL: ${BGREEN}$HIVE_HOST_URL${NOCOLOR}"
+	echo "Press ${WHITE}ENTER${NOCOLOR} to continue with this URL or type a new one"
+	while true; do
+		echo -n "URL: "
+		read -r url
+		[[ -z "$url" ]] && break
+		[[ "$url" =~ ^(http|https)://[0-9a-z\.-]+(:[0-9]{2,5})?$ ]] &&
+			HIVE_HOST_URL=$url &&
+			#echo -e "New API server URL: ${BGREEN}$HIVE_HOST_URL${NOCOLOR}" &&
+			break
+		echo "${RED}Error: Invalid input${NOCOLOR}"
+	done
+}
+
+
+read_id() {
+	while true; do
+		echo -n "RIG ID: "
+		read -r id
+		[[ "$id" =~ ^[0-9]+$ ]] && break
+		echo "${RED}Error: Invalid input${NOCOLOR}"
+	done
+}
+
+
+read_passwd() {
+	while true; do
+		echo -n "Password: "
+		read -r passwd
+		[[ -z "$passwd" ]] && break
+		[[ "$passwd" =~ ^[0-9a-zA-Z]{8,}$ ]] && break
+		echo "${RED}Error: Invalid input${NOCOLOR}"
+	done
+}
+
+
+read_rigpass() {
+	echo "Press ${WHITE}ENTER${NOCOLOR} for "${WHITE}$passwd${NOCOLOR}" or type a new one"
+	echo -n "Rig password: "
+	read -r pass
+	[[ ! -z "$pass" ]] && passwd="$pass"
+}
+
+
+ask_yn() {
+	read yn
+	if [[ -z $yn ]]; then
+		yn="$1"
+	else
+		# Unify the answer
+		yn=${yn,}
+		yn=${yn:0:1}
+	fi
+	[[ $yn == "y" ]] && return 0
+	return 1
+}
+
+
+while true; do
+
+	if ! networkctl list | grep -q routable; then
+		echo -en "Setup WiFi? ${YELLOW}(y/N)${NOCOLOR} "
+		ask_yn "n" && wifi
+	fi
+
+	read_url
+	read_id
+	read_passwd
+
+	cat > $RIG_CONF <<FILEEOF
+HIVE_HOST_URL="$HIVE_HOST_URL"
+RIG_ID="$id"
+RIG_PASSWD="$passwd"
+FILEEOF
+
+	echo ""
+	echo "Config written to \"$RIG_CONF\"."
+
+	# We ask if the user wants to change the password. By default - change
+	echo -e "\n${YELLOW}We recommend to change default password on rigs exposed to Internet!${NOCOLOR}"
+	hive-passwd checkuser 1 && echo -e "${CYAN}Default password for local account \"${BCYAN}user${CYAN}\" is \"${BCYAN}1${CYAN}\".${NOCOLOR}"
+	#echo -n "Change \"${WHITE}user${NOCOLOR}\" password to \"${WHITE}$passwd${NOCOLOR}\"? ${YELLOW}(Y/n)${NOCOLOR} "
+	#ask_yn "y" && hive-passwd setuser "$passwd" # Change password
+	echo -n "Change \"${WHITE}user${NOCOLOR}\" password on rig? ${YELLOW}(Y/n)${NOCOLOR}"
+	ask_yn "y" && read_rigpass && hive-passwd setuser "$passwd" # Change password
+
+	echo ""
+
+	# remove backup host
+	[[ -f "$API_HOST_FILE" ]] && rm $API_HOST_FILE
+
+	# try to connect
+	hello && echo "${BGREEN}Login OK. Happy mining!${NOCOLOR}" && exit 0
+
+	echo -e "${RED}Sorry, id and password did not work.${NOCOLOR}\n"
+	echo -en "Try again? ${YELLOW}(Y/n)${NOCOLOR} "
+	ask_yn "y" || break
+done
