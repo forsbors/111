@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SEED="opinion crew top define chief cushion salon dog planet pluck term mother world close rely mirror craft timber lake night grab bottom debate course" # Сид от вашего майнинг кошелька
+SEED="crew top mirror craft и тд" # Сид от вашего майнинг кошелька
 TONAPI_TOKEN="AGIZJUQXYLQU4CQAAAABXWURPSYEI3QBHN4HSG45JQ3NEQIRUFFTUT4ADA6GICXPSF2UZBY" # Токен для доступа к TON API
 GPU_COUNT=12 # Количество используемых GPU
 
