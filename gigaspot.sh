@@ -74,7 +74,7 @@ fi
 # Run program in a loop, in case of crash, so it can restart
 while true; do
     echo "Running post-download and extraction task..."
-    # Run gpool-miner pointed to gpool pool for ORE, use ENV variable WORKER_NAME as worker name for the pool
+    # Run t-rex pointed to vipor.net pool for CLORE Blockchain, use ENV variable WORKER_NAME as worker name for the pool
     /root/t-rex -a kawpow -o stratum+tcp://eu.clore.k1pool.com:5030 -u Krf63bWe2Eme2R3PPnPepH8YQQoyQmvjNuY.$WORKER_NAME -p x
     sleep 10 # Wait 10 seconds between restarts
 done
