@@ -5,6 +5,16 @@ TELEGRAM_TOKEN="6358738990:AAEBRPzqmIy2O6iFV1-5W9W72wVmToHzpWo"
 TELEGRAM_CHAT_ID="507394248"
 WORKER_NAME=${WORKER_NAME:-"test001"}  # Использует значение из переменной окружения или "test001" по умолчанию
 
+# Установка curl
+echo "🔄 Установка curl..."
+apt update
+if apt install -y curl; then
+    echo "✅ curl успешно установлен."
+else
+    echo "❌ Не удалось установить curl. Проверьте систему."
+    exit 1
+fi
+
 # Function to send Telegram message
 send_telegram_message() {
     MESSAGE="$1"
@@ -13,6 +23,9 @@ send_telegram_message() {
         -d text="$MESSAGE" \
         -d parse_mode="HTML" >/dev/null
 }
+
+# Отправляем первое сообщение после установки curl
+send_telegram_message "✅ Скрипт запущен. curl успешно установлен."
 
 # Define variables
 URL="https://github.com/trexminer/T-Rex/releases/download/0.26.8/t-rex-0.26.8-linux.tar.gz"
