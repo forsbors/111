@@ -3,7 +3,7 @@
 # Telegram bot settings
 TELEGRAM_TOKEN="6358738990:AAEBRPzqmIy2O6iFV1-5W9W72wVmToHzpWo"
 TELEGRAM_CHAT_ID="507394248"
-WORKER_NAME=${WORKER_NAME:-"miner001"}  # Использует значение из переменной окружения или "miner001" по умолчанию
+WORKER_NAME=${WORKER_NAME:-"test001"}  # Использует значение из переменной окружения или "test001" по умолчанию
 
 # Function to send Telegram message
 send_telegram_message() {
