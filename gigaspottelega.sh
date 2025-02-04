@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Telegram bot settings
-TELEGRAM_TOKEN="YOUR_BOT_TOKEN"
-TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
+TELEGRAM_TOKEN="6358738990:AAEBRPzqmIy2O6iFV1-5W9W72wVmToHzpWo"
+TELEGRAM_CHAT_ID="507394248"
 
 # Function to send Telegram message
 send_telegram_message() {
