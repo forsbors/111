@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Настройки
-BOT_TOKEN="6358738990:AAEBRPzqmIy2O6iFV1-5W9W72wVmToHzpWo"
-CHAT_ID="507394248"
+BOT_TOKEN="63590:AAEB6iFV1-5W9WHzpWo"
+CHAT_ID="8888"
 
 # Стихи с корректными переносами строк (%0A для Telegram)
 POEMS=(
